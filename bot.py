@@ -1,9 +1,3 @@
-import discord
-from discord.ext import commands
-import requests
-from bs4 import BeautifulSoup
-import re
-
 '''
 Ahi lo encontre, esta en
 - body
@@ -19,7 +13,18 @@ Luego, los elementos:
 
 '''
 
+import discord
+from discord.ext import commands
+import requests
+from bs4 import BeautifulSoup
+import re
+import os
 
+TOKEN = os.getenv('DISCORD_TOKEN')
+
+
+
+# Clase para extraer las listas de tier
 class TierListExtractor:
     def __init__(self, url, section_title):
         self.url = url
@@ -48,42 +53,7 @@ class TierListExtractor:
         tier_list = [item.get_text(strip=True) for item in list_items]
         return tier_list
 
-# URLs y títulos de las listas de cada tipo
-extractors_info = {
-    'healer': {
-        'url': 'https://www.icy-veins.com/wow/mythic-beta-healer-tier-list',
-        'title': 'Healer Tier List for Season 1 of Mythic+ in The War Within'
-    },
-    'tank': {
-        'url': 'https://www.icy-veins.com/wow/mythic-beta-tank-tier-list',
-        'title': 'Tank Tier List for Season 1 of Mythic+ in The War Within'
-    },
-    'dps': {
-        'url': 'https://www.icy-veins.com/wow/mythic-beta-dps-tier-list',
-        'title': 'DPS Tier List for Season 1 of Mythic+ in The War Within'
-    }
-}
-
-# Crear instancias de la clase para cada tipo de lista
-extractors = {key: TierListExtractor(value['url'], value['title']) for key, value in extractors_info.items()}
-
-# Crear el bot de Discord con intents adicionales
-intents = discord.Intents.default()
-intents.message_content = True  # Asegúrate de tener habilitada la intención para contenido de mensajes
-bot = commands.Bot(command_prefix='/', intents=intents)
-
-@bot.event
-async def on_ready():
-    print(f'Bot conectado como {bot.user}')
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        await ctx.send("Comando no encontrado.")
-    else:
-        raise error
-
-
+# Diccionario de agrupamiento basado en el texto en paréntesis
 grouping_conditions = {
     'OP': 'S - OP',
     'Best': 'A - Best-Candidates',
@@ -94,6 +64,7 @@ grouping_conditions = {
     'Decent': 'E - Decent',
     'Underperforming': 'F - Underperforming'
 }
+
 def format_as_table(command_name, tier_list):
     # Crear un diccionario para agrupar las especializaciones
     groups = {}
@@ -130,10 +101,72 @@ def format_as_table(command_name, tier_list):
     response += "```"  # Cierra la sección de código en Discord
     return response
 
+# URLs y títulos de las listas de cada tipo
+extractors_info = {
+    'healer': {
+        'url': 'https://www.icy-veins.com/wow/mythic-beta-healer-tier-list',
+        'title': 'Healer Tier List for Season 1 of Mythic+ in The War Within'
+    },
+    'tank': {
+        'url': 'https://www.icy-veins.com/wow/mythic-beta-tank-tier-list',
+        'title': 'Tank Tier List for Season 1 of Mythic+ in The War Within'
+    },
+    'dps': {
+        'url': 'https://www.icy-veins.com/wow/mythic-beta-dps-tier-list',
+        'title': 'DPS Tier List for Season 1 of Mythic+ in The War Within'
+    }
+}
 
-async def tier_list(ctx):
-    command_name = ctx.invoked_with  # Obtener el nombre del comando invocado
-    print(f'Comando /{command_name} recibido')
+# Crear instancias de la clase para cada tipo de lista
+extractors = {key: TierListExtractor(value['url'], value['title']) for key, value in extractors_info.items()}
+
+# Crear el bot de Discord con intents adicionales
+intents = discord.Intents.default()
+intents.message_content = True  # Asegúrate de tener habilitada la intención para contenido de mensajes
+bot = commands.Bot(command_prefix='/', intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f'Bot conectado como {bot.user}')
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("Comando no encontrado. Usa `/tier help` para ver la lista de comandos disponibles.")
+    else:
+        raise error
+
+# Comando principal /tier
+@bot.group(invoke_without_command=True)
+async def tier(ctx):
+    await ctx.send("Usa `/tier help` para ver la lista de comandos disponibles.")
+
+@tier.command(name='healer')
+async def tier_healer(ctx):
+    await tier_list(ctx, 'healer')
+
+@tier.command(name='tank')
+async def tier_tank(ctx):
+    await tier_list(ctx, 'tank')
+
+@tier.command(name='dps')
+async def tier_dps(ctx):
+    await tier_list(ctx, 'dps')
+
+@tier.command(name='help')
+async def tier_help(ctx):
+    help_text = (
+        "Comandos disponibles:\n"
+        "/tier healer - Shows the list of Healers\n"
+        "/tier tank - Shows the list of Tanks\n"
+        "/tier dps - Shows the list of DPS\n"
+        "/tier help - Help command\n"
+    )
+    await ctx.send(help_text)
+
+async def tier_list(ctx, tipo):
+    command_name = tipo.lower()  # Convertir el tipo a minúsculas
+    print(f'Comando /tier {command_name} recibido')
 
     extractor = extractors.get(command_name)
     if not extractor:
@@ -148,14 +181,11 @@ async def tier_list(ctx):
 
     await ctx.send(response)
 
-# Registrar comandos dinámicamente
-for command_name in extractors.keys():
-    bot.command(name=command_name)(tier_list)
 
 
 # Iniciar el bot
-bot.run('MTI2NDk1MzgxNDg2NDEwNTU5Mg.GTPudj.QKB4N_anZR7hxpy5eB34l7lY1RprxK-4NogkV4')
-
+#bot.run('MTI2NDk1MzgxNDg2NDEwNTU5Mg.GTPudj.QKB4N_anZR7hxpy5eB34l7lY1RprxK-4NogkV4')
+bot.run(TOKEN)
 
 
 
