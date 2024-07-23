@@ -13,16 +13,12 @@ Luego, los elementos:
 
 '''
 
+import os
 import discord
 from discord.ext import commands
 import requests
 from bs4 import BeautifulSoup
 import re
-import os
-
-TOKEN = os.getenv('DISCORD_TOKEN')
-
-
 
 # Clase para extraer las listas de tier
 class TierListExtractor:
@@ -157,10 +153,10 @@ async def tier_dps(ctx):
 async def tier_help(ctx):
     help_text = (
         "Comandos disponibles:\n"
-        "/tier healer - Shows the list of Healers\n"
-        "/tier tank - Shows the list of Tanks\n"
-        "/tier dps - Shows the list of DPS\n"
-        "/tier help - Help command\n"
+        "/tier healer - Muestra la lista de Healers\n"
+        "/tier tank - Muestra la lista de Tanks\n"
+        "/tier dps - Muestra la lista de DPS\n"
+        "/tier help - Muestra este mensaje de ayuda\n"
     )
     await ctx.send(help_text)
 
@@ -181,11 +177,9 @@ async def tier_list(ctx, tipo):
 
     await ctx.send(response)
 
-
-
 # Iniciar el bot
-#bot.run('MTI2NDk1MzgxNDg2NDEwNTU5Mg.GTPudj.QKB4N_anZR7hxpy5eB34l7lY1RprxK-4NogkV4')
-bot.run(TOKEN)
+bot.run(os.getenv('DISCORD_TOKEN'))
+
 
 
 
